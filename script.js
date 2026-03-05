@@ -242,6 +242,7 @@ function renderTenants() {
                         <tr>
                             <th>Apto</th>
                             <th>Inquilino</th>
+                            <th>Contrato</th>
                             <th>Aluguel</th>
                             <th>Vencimento</th>
                             <th>Status</th>
@@ -255,9 +256,10 @@ function renderTenants() {
             return `
                                 <tr>
                                     <td><strong>${unit ? unit.numero : 'N/A'}</strong></td>
-                                    <td>${t.nome}<br><small>${t.phone}</small></td>
-                                    <td>${formatCurrency(t.rent_value)}</td>
-                                    <td>Dia ${t.due_day}</td>
+                                    <td>${t.nome}</td>
+                                <td>${t.contract_duration ? t.contract_duration + ' meses' : '-'}</td>
+                                <td>${formatCurrency(t.rent_value)}</td>
+                                <td>Dia ${t.due_day}</td>
                                     <td><span class="badge ${status.class}">${status.label}</span></td>
                                     <td><button class="btn" style="background:#ef4444; padding:0.4rem 0.8rem;" onclick="deleteTenant('${t.id}')">Desocupar</button></td>
                                 </tr>
@@ -425,7 +427,8 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
         related_contacts: relatedContacts,
         due_day: parseInt(document.getElementById('tenant-due-day').value),
         rent_value: parseFloat(rentVal),
-        deposit: parseFloat(depositVal)
+        deposit: parseFloat(depositVal),
+        contract_duration: parseInt(document.getElementById('tenant-contract-duration').value)
     };
 
     try {
