@@ -126,7 +126,8 @@ function setupInputFilters() {
 }
 
 // Global Navigation Function
-function navigateTo(target) {
+// Global Navigation Function
+window.navigateTo = function (target) {
     console.log("Navegando programaticamente para:", target);
 
     // Atualizar classes 'active' em todos os menus (Sidebar e Bottom Nav)
@@ -167,31 +168,43 @@ function formatCurrency(value) { return new Intl.NumberFormat('pt-BR', { style: 
 
 function getStatusPagamento(inquilino) {
     const hoje = new Date();
-    const entryDate = inquilino.entry_date ? new Date(inquilino.entry_date) : new Date(2024, 0, 1);
+    // Se não houver data de entrada, assume o mês atual para não gerar dívidas fantasmas de 2024
+    const entryDate = inquilino.entry_date ? new Date(inquilino.entry_date) : new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
     let totalDebtMonths = [];
 
     // Iterar do mês de entrada até o mês atual
+    // Usar dia 1 para evitar problemas de fuso/DST/dias 31
     let current = new Date(entryDate.getFullYear(), entryDate.getMonth(), 1);
-    const stop = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const stopYear = hoje.getFullYear();
+    const stopMonth = hoje.getMonth();
 
-    while (current <= stop) {
+    // Segurança: não deixar o loop rodar infinitamente se a data for inválida
+    let maxIter = 100;
+
+    while (maxIter > 0) {
         const m = current.getMonth();
         const y = current.getFullYear();
+
+        // Se passamos do mês atual, paramos
+        if (y > stopYear || (y === stopYear && m > stopMonth)) break;
 
         const pago = state.pagamentos.find(p => p.inquilino_id === inquilino.id && p.mes === m && p.ano === y);
 
         if (!pago) {
             // Se for o mês atual, só conta como dívida se já passou o dia de vencimento
-            if (current.getTime() === stop.getTime()) {
-                if (hoje.getDate() > inquilino.due_day) {
+            if (y === stopYear && m === stopMonth) {
+                if (hoje.getDate() > (inquilino.due_day || 31)) {
                     totalDebtMonths.push({ mes: m, ano: y });
                 }
             } else {
                 totalDebtMonths.push({ mes: m, ano: y });
             }
         }
-        current.setMonth(current.getMonth() + 1);
+
+        // Incrementar mês de forma segura
+        current = new Date(y, m + 1, 1);
+        maxIter--;
     }
 
     if (totalDebtMonths.length > 0) {
@@ -353,15 +366,16 @@ function renderPayments() {
             return `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid rgba(239, 68, 68, 0.2);">
                     <div style="flex:1">
-                        <strong>${t.nome}</strong> (Apto ${unit ? unit.numero : '?'})<br>
+                        <strong>${t.nome || 'Inquilino s/ nome'}</strong> <br>
+                        <small style="font-weight:bold;">Apto: ${unit ? unit.numero : 'Apto não encontrado'}</small><br>
                         <small style="color:#ef4444; font-weight:bold;">Atrasado: ${mesesExtenso}</small><br>
-                        <small>${predio ? predio.nome : 'N/A'}</small>
+                        <small>${predio ? predio.nome : (unit ? 'Local não vinculado' : '')}</small>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
                         <a href="tel:${purePhone}" class="btn" style="background: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 0.4rem 0.8rem;">
                             📞 Ligar
                         </a>
-                        <button class="btn" onclick="navigateTo('financeiro')">Ver</button>
+                        <button class="btn" style="background: var(--primary);" onclick="window.navigateTo('financeiro')">Ver</button>
                     </div>
                 </div>
             `;
@@ -570,6 +584,9 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
     const rentVal = document.getElementById('tenant-rent-value').value.replace(',', '.');
     const depositVal = document.getElementById('tenant-deposit').value.replace(',', '.');
 
+    const entryDateVal = document.getElementById('tenant-entry-date').value;
+    const lastPaymentDateVal = document.getElementById('tenant-last-payment-date').value;
+
     const newTenant = {
         unidade_id: unitId,
         nome: document.getElementById('tenant-name').value,
@@ -578,9 +595,10 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
         related_contacts: relatedContacts,
         due_day: parseInt(document.getElementById('tenant-due-day').value),
         rent_value: parseFloat(rentVal),
-        deposit: parseFloat(depositVal),
+        deposit: parseFloat(depositVal) || 0,
         contract_duration: parseInt(document.getElementById('tenant-contract-duration').value),
-        entry_date: type === 'old' ? document.getElementById('tenant-entry-date').value : new Date().toISOString().split('T')[0]
+        // Se for antigo e não tiver data de entrada, usa a data do último pagamento como início
+        entry_date: type === 'old' ? (entryDateVal || lastPaymentDateVal) : new Date().toISOString().split('T')[0]
     };
 
     try {
