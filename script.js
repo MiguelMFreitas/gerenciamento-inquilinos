@@ -241,15 +241,42 @@ function renderSection(name) {
 }
 
 function updateDashboard() {
-    const totalRevenue = state.inquilinos.reduce((acc, t) => acc + parseFloat(t.rent_value || 0), 0);
-    let pendingCount = 0;
-    state.inquilinos.forEach(t => { if (getStatusPagamento(t).label !== 'PAGO') pendingCount++; });
+    const hoje = new Date();
+    const atualMes = hoje.getMonth();
+    const atualAno = hoje.getFullYear();
 
-    document.getElementById('stats-revenue').innerText = formatCurrency(totalRevenue);
-    document.getElementById('stats-tenants').innerText = state.inquilinos.length;
-    document.getElementById('stats-occupied').innerText = state.unidades.length > 0 ?
-        `${Math.round((state.unidades.filter(u => u.status === 'ocupado').length / state.unidades.length) * 100)}%` : '0%';
-    document.getElementById('stats-pending').innerText = pendingCount;
+    // 1. Previsão Total (Soma de todos os aluguéis ativos)
+    const expectedRevenue = state.inquilinos.reduce((acc, t) => acc + parseFloat(t.rent_value || 0), 0);
+
+    // 2. Receita Recebida (Somente o que foi pago NO MÊS ATUAL)
+    const paidRevenue = state.pagamentos
+        .filter(p => p.mes === atualMes && p.ano === atualAno && p.status === 'pago')
+        .reduce((acc, p) => {
+            const tenant = state.inquilinos.find(t => t.id === p.inquilino_id);
+            return acc + parseFloat(tenant ? tenant.rent_value : 0);
+        }, 0);
+
+    // 3. Inquilinos em Atraso (Status 'EM ATRASO' em qualquer mês)
+    let pendingCount = 0;
+    state.inquilinos.forEach(t => {
+        if (getStatusPagamento(t).label === 'EM ATRASO') pendingCount++;
+    });
+
+    // 4. Unidades Ocupadas
+    const occupiedCount = state.unidades.filter(u => u.status === 'ocupado').length;
+    const occupancyRate = state.unidades.length > 0 ? (occupiedCount / state.unidades.length) * 100 : 0;
+
+    // Atualizar UI
+    const elExpected = document.getElementById('stats-revenue-expected');
+    const elPaid = document.getElementById('stats-revenue-paid');
+    const elPending = document.getElementById('stats-pending');
+    const elOccupied = document.getElementById('stats-occupied');
+
+    if (elExpected) elExpected.innerText = formatCurrency(expectedRevenue);
+    if (elPaid) elPaid.innerText = formatCurrency(paidRevenue);
+    if (elPending) elPending.innerText = pendingCount;
+    if (elOccupied) elOccupied.innerText = `${occupancyRate.toFixed(0)}%`;
+
     renderUpcoming();
 }
 
