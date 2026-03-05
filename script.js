@@ -168,8 +168,15 @@ function formatCurrency(value) { return new Intl.NumberFormat('pt-BR', { style: 
 
 function getStatusPagamento(inquilino) {
     const hoje = new Date();
-    // Se não houver data de entrada, assume o mês atual para não gerar dívidas fantasmas de 2024
-    const entryDate = inquilino.entry_date ? new Date(inquilino.entry_date) : new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+    let entryDate;
+    if (inquilino.entry_date) {
+        // Parse manual para evitar que "2026-03-01" vire "2026-02-28" por causa de fuso horário/UTC
+        const parts = inquilino.entry_date.split('-');
+        entryDate = new Date(parts[0], parts[1] - 1, parts[2] || 1);
+    } else {
+        entryDate = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    }
 
     let totalDebtMonths = [];
 
