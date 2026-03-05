@@ -380,8 +380,8 @@ function renderTenants() {
                                 <tr>
                                     <td><strong>${unit ? unit.numero : 'N/A'}</strong></td>
                                     <td>${t.nome}</td>
-                                <td>${t.contract_duration ? t.contract_duration + ' meses' : '-'}</td>
-                                <td>${(() => {
+                                    <td>${t.contract_duration ? t.contract_duration + ' meses' : '-'}</td>
+                                    <td>${(() => {
                     const pays = state.pagamentos.filter(p => p.inquilino_id === t.id);
                     if (pays.length === 0) return '---';
                     const latest = pays.reduce((prev, curr) => {
@@ -392,10 +392,23 @@ function renderTenants() {
                     const mesNome = new Date(latest.ano, latest.mes).toLocaleString('pt-BR', { month: 'short' });
                     return `${mesNome.toUpperCase()} / ${latest.ano}`;
                 })()}</td>
-                                <td>${formatCurrency(t.rent_value)}</td>
-                                <td>Dia ${t.due_day}</td>
-                                    <td><span class="badge ${status.class}">${status.label}</span></td>
-                                    <td><button class="btn" style="background:#ef4444; padding:0.4rem 0.8rem;" onclick="deleteTenant('${t.id}')">Desocupar</button></td>
+                                    <td>${formatCurrency(t.rent_value)}</td>
+                                    <td>Dia ${t.due_day}</td>
+                                    <td>
+                                        <div style="display:flex; flex-direction:column; gap:4px;">
+                                            <span class="badge ${status.class}">${status.label}</span>
+                                            ${(() => {
+                    const cStatus = getContractStatus(t);
+                    return cStatus.label === 'VENCIDO' ? `<span class="badge atrasado" style="font-size: 10px; padding: 2px 4px; display:inline-block;">CONTRATO VENCIDO</span>` : '';
+                })()}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style="display:flex; gap: 0.5rem; align-items:center;">
+                                            <button class="btn" style="background:#ef4444; padding:0.4rem 0.8rem;" onclick="deleteTenant('${t.id}')">Desocupar</button>
+                                            ${t.observations ? `<button class="btn" style="background:#6366f1; padding:0.4rem 0.8rem;" title="Ver Observações" onclick="alert('Observações de ${t.nome}:\\n\\n${t.observations}')">Obs</button>` : ''}
+                                        </div>
+                                    </td>
                                 </tr>
                             `;
         }).join('')}
