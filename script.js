@@ -30,7 +30,9 @@ let state = {
     predios: [],
     unidades: [],
     inquilinos: [],
-    pagamentos: []
+    pagamentos: [],
+    viewMonth: new Date().getMonth(),
+    viewYear: new Date().getFullYear()
 };
 
 // Carregar dados iniciais do Supabase
@@ -258,6 +260,17 @@ function renderTenants() {
                                     <td><strong>${unit ? unit.numero : 'N/A'}</strong></td>
                                     <td>${t.nome}</td>
                                 <td>${t.contract_duration ? t.contract_duration + ' meses' : '-'}</td>
+                                <td>${(() => {
+                    const pays = state.pagamentos.filter(p => p.inquilino_id === t.id);
+                    if (pays.length === 0) return '---';
+                    const latest = pays.reduce((prev, curr) => {
+                        if (curr.ano > prev.ano) return curr;
+                        if (curr.ano === prev.ano && curr.mes > prev.mes) return curr;
+                        return prev;
+                    });
+                    const mesNome = new Date(latest.ano, latest.mes).toLocaleString('pt-BR', { month: 'short' });
+                    return `${mesNome.toUpperCase()} / ${latest.ano}`;
+                })()}</td>
                                 <td>${formatCurrency(t.rent_value)}</td>
                                 <td>Dia ${t.due_day}</td>
                                     <td><span class="badge ${status.class}">${status.label}</span></td>
@@ -307,20 +320,94 @@ function renderPayments() {
 
     // 2. Renderizar Tabela Geral
     tbody.innerHTML = state.inquilinos.map(t => {
-        const status = getStatusPagamento(t);
+        // Agora o status é relativo ao mês que estamos VENDO
+        const pago = state.pagamentos.find(p => p.inquilino_id === t.id && p.mes === state.viewMonth && p.ano === state.viewYear);
         const unit = state.unidades.find(u => u.id === t.unidade_id);
         const predio = unit ? state.predios.find(p => p.id === unit.predio_id) : null;
-        const mesNome = new Date().toLocaleString('pt-BR', { month: 'long' });
+
+        let statusLabel = 'PENDENTE';
+        let statusClass = 'pendente';
+
+        if (pago) {
+            statusLabel = 'PAGO';
+            statusClass = 'pago';
+        } else {
+            const hoje = new Date();
+            const diaVencimento = t.due_day;
+            // Se o mês visualizado for passado ou atual e já venceu
+            const isPastMonth = state.viewYear < hoje.getFullYear() || (state.viewYear === hoje.getFullYear() && state.viewMonth < hoje.getMonth());
+            const isCurrentMonth = state.viewYear === hoje.getFullYear() && state.viewMonth === hoje.getMonth();
+
+            if (isPastMonth || (isCurrentMonth && hoje.getDate() > diaVencimento)) {
+                statusLabel = 'EM ATRASO';
+                statusClass = 'atrasado';
+            }
+        }
+
         return `
             <tr>
-                <td>${mesNome.toUpperCase()} / ${new Date().getFullYear()}</td>
+                <td>${mesNome.toUpperCase()} / ${state.viewYear}</td>
                 <td><strong>Apto ${unit ? unit.numero : '?'}</strong><br><small>${predio ? predio.nome : 'N/A'}</small></td>
                 <td>${formatCurrency(t.rent_value)}</td>
-                <td><span class="badge ${status.class}">${status.label}</span></td>
-                <td>${status.label !== 'PAGO' ? `<button class="btn" onclick="registerPayment('${t.id}')">Registrar</button>` : '✅'}</td>
+                <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+                <td>${statusLabel !== 'PAGO' ? `<button class="btn" onclick="registerPaymentForMonth('${t.id}', ${state.viewMonth}, ${state.viewYear})">Registrar</button>` : '✅'}</td>
             </tr>
         `;
     }).join('');
+}
+
+function changeMonth(delta) {
+    let newMonth = state.viewMonth + delta;
+    let newYear = state.viewYear;
+
+    if (newMonth > 11) {
+        newMonth = 0;
+        newYear++;
+    } else if (newMonth < 0) {
+        newMonth = 11;
+        newYear--;
+    }
+
+    state.viewMonth = newMonth;
+    state.viewYear = newYear;
+    renderPayments();
+}
+
+// Helper to register payment for a specific month
+async function registerPaymentForMonth(tenantId, month, year) {
+    openPaymentModal(tenantId);
+    // Overwrite standard submit to use selected month/year
+    const originalSubmit = document.getElementById('form-confirm-payment').onsubmit;
+    document.getElementById('form-confirm-payment').onsubmit = async (e) => {
+        e.preventDefault();
+        const method = document.getElementById('payment-method').value;
+        const datetime = document.getElementById('cash-datetime').value;
+        const pixFile = document.getElementById('pix-file').files[0];
+
+        const details = {
+            method: method,
+            timestamp: method === 'dinheiro' ? datetime : new Date().toISOString(),
+            receipt: method === 'pix' ? (pixFile ? pixFile.name : 'Arquivo anexado') : 'Pagamento em espécie'
+        };
+
+        const newPayment = {
+            inquilino_id: tenantId,
+            mes: month,
+            ano: year,
+            status: 'pago',
+            details
+        };
+
+        const { error } = await db.from('pagamentos').insert([newPayment]);
+        if (error) alert("Erro ao registrar pagamento: " + error.message);
+        else {
+            await loadData();
+            closePaymentModal();
+            alert('Pagamento registrado com sucesso!');
+            // Restore original submit if needed (though it's usually current month)
+            document.getElementById('form-confirm-payment').onsubmit = originalSubmit;
+        }
+    };
 }
 
 function renderUpcoming() {

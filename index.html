@@ -70,8 +70,9 @@
                     <thead>
                         <tr>
                             <th>Inquilino</th>
-                            <th>Imóvel</th>
-                            <th>Valor</th>
+                            <th>Contrato</th>
+                            <th>Últ. Pagamento</th>
+                            <th>Aluguel</th>
                             <th>Vencimento</th>
                             <th>Status</th>
                         </tr>
@@ -248,7 +249,17 @@
             </div>
 
             <div class="card">
-                <h3>Controle Geral de Pagamentos</h3>
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+                    <h3>Controle de Pagamentos</h3>
+                    <div class="month-navigation">
+                        <button class="btn" onclick="changeMonth(-1)">❮ Anterior</button>
+                        <span id="current-month-display"
+                            style="font-weight:bold; min-width:150px; text-align:center; font-size:1.1rem; color:var(--primary)">Março
+                            / 2026</span>
+                        <button class="btn" onclick="changeMonth(1)">Próximo ❯</button>
+                    </div>
+                </div>
                 <table id="table-payments">
                     <thead>
                         <tr>

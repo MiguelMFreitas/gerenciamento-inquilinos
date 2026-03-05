@@ -242,6 +242,28 @@ label {
     margin-bottom: 1rem;
 }
 
+.month-navigation {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem;
+    border-radius: 30px;
+    border: 1px solid var(--border);
+}
+
+.month-navigation .btn {
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+}
+
+.month-navigation .btn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
 /* Utilities */
 .mt-1 {
     margin-top: 1rem;
