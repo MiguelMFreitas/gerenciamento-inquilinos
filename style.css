@@ -283,7 +283,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -293,6 +294,11 @@ select {
     outline: none;
     font-size: 1rem;
     font-weight: 500;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
 option {

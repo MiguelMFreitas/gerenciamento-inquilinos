@@ -276,8 +276,10 @@ function updateDashboard() {
     const atualMes = hoje.getMonth();
     const atualAno = hoje.getFullYear();
 
-    // 1. Previsão Total (Soma de todos os aluguéis ativos)
-    const expectedRevenue = state.inquilinos.reduce((acc, t) => acc + parseFloat(t.rent_value || 0), 0);
+    // 1. Previsão Total (Soma de todos os aluguéis de quem está OCUPANDO uma unidade)
+    const expectedRevenue = state.inquilinos
+        .filter(t => t.unidade_id)
+        .reduce((acc, t) => acc + parseFloat(t.rent_value || 0), 0);
 
     // 2. Receita Recebida (Somente o que foi pago NO MÊS ATUAL)
     const paidRevenue = state.pagamentos
@@ -287,10 +289,10 @@ function updateDashboard() {
             return acc + parseFloat(tenant ? tenant.rent_value : 0);
         }, 0);
 
-    // 3. Inquilinos em Atraso (Status 'EM ATRASO' em qualquer mês)
+    // 3. Inquilinos em Atraso (Status 'EM ATRASO' somente para quem tem unidade)
     let pendingCount = 0;
     state.inquilinos.forEach(t => {
-        if (getStatusPagamento(t).label === 'EM ATRASO') pendingCount++;
+        if (t.unidade_id && getStatusPagamento(t).label === 'EM ATRASO') pendingCount++;
     });
 
     // 4. Unidades Ocupadas
