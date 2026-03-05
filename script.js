@@ -1,20 +1,28 @@
-console.log("Iniciando script...");
+console.log("Iniciando script.js...");
 
 const SUPABASE_URL = "https://obvhpzlirwsuymbiencv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9idmhwemxpcndzdXltYmllbmN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzY3OTcsImV4cCI6MjA4ODIxMjc5N30.Ru1JG7hCUSVHpomRFUMDrzgkjAnLoiK8cI-wGRf8CTM";
 
-let supabase;
-try {
-    console.log("Tentando inicializar Supabase...");
-    // A biblioteca carregada via CDN define 'supabase' como o namespace principal
-    if (window.supabase && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log("Supabase inicializado com sucesso!");
-    } else {
-        console.error("Erro: Biblioteca Supabase não encontrada no window. Verifique o link do script no HTML.");
+let db; // Renomeado de 'supabase' para 'db' para evitar conflito com a global da biblioteca
+
+function initSupabase() {
+    try {
+        console.log("Tentando inicializar o cliente Supabase...");
+        // A biblioteca CDN pode estar em window.supabase ou apenas no global 'supabase'
+        const supabaseLib = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+
+        if (supabaseLib && supabaseLib.createClient) {
+            db = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log("Cliente Supabase (db) pronto!");
+            return true;
+        } else {
+            console.error("Erro crítico: Biblioteca Supabase não encontrada. Verifique os scripts no HTML.");
+            return false;
+        }
+    } catch (e) {
+        console.error("Exceção ao inicializar Supabase:", e);
+        return false;
     }
-} catch (e) {
-    console.error("Erro fatal na inicialização do Supabase:", e);
 }
 
 // State management (Now as a cache of the DB)
@@ -35,10 +43,10 @@ async function loadData() {
     try {
         console.log("Buscando dados no Supabase...");
         const [p, u, i, pays] = await Promise.all([
-            supabase.from('predios').select('*').order('nome'),
-            supabase.from('unidades').select('*'),
-            supabase.from('inquilinos').select('*'),
-            supabase.from('pagamentos').select('*')
+            db.from('predios').select('*').order('nome'),
+            db.from('unidades').select('*'),
+            db.from('inquilinos').select('*'),
+            db.from('pagamentos').select('*')
         ]);
 
         console.log("Dados recebidos:", {
@@ -313,14 +321,14 @@ function renderUpcoming() {
 document.getElementById('form-predio').onsubmit = async (e) => {
     e.preventDefault();
     const nome = document.getElementById('building-name').value;
-    const { error } = await supabase.from('predios').insert([{ nome }]);
+    const { error } = await db.from('predios').insert([{ nome }]);
     if (error) alert("Erro ao salvar prédio: " + error.message);
     else { await loadData(); renderPropertiesManager(); e.target.reset(); }
 };
 
 async function deleteBuilding(id) {
     if (!confirm('Isso excluirá o prédio e todas as suas unidades. Continuar?')) return;
-    const { error } = await supabase.from('predios').delete().eq('id', id);
+    const { error } = await db.from('predios').delete().eq('id', id);
     if (error) alert("Erro ao excluir: " + error.message);
     else await loadData();
 }
@@ -331,14 +339,14 @@ document.getElementById('form-unidade').onsubmit = async (e) => {
     const predio_id = document.getElementById('unit-select-building').value;
     const numero = document.getElementById('unit-number').value;
 
-    const { error } = await supabase.from('unidades').insert([{ predio_id, numero, status: 'vago' }]);
+    const { error } = await db.from('unidades').insert([{ predio_id, numero, status: 'vago' }]);
     if (error) alert("Erro ao salvar unidade: " + error.message);
     else { await loadData(); renderPropertiesManager(); e.target.reset(); }
 };
 
 async function deleteUnit(id) {
     if (!confirm('Excluir esta unidade?')) return;
-    const { error } = await supabase.from('unidades').delete().eq('id', id);
+    const { error } = await db.from('unidades').delete().eq('id', id);
     if (error) alert("Erro ao excluir: " + error.message);
     else await loadData();
 }
@@ -405,11 +413,11 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
 
     try {
         // 1. Inserir Inquilino
-        const { error: tError } = await supabase.from('inquilinos').insert([newTenant]);
+        const { error: tError } = await db.from('inquilinos').insert([newTenant]);
         if (tError) throw tError;
 
         // 2. Atualizar Unidade para "ocupado"
-        const { error: uError } = await supabase.from('unidades').update({ status: 'ocupado' }).eq('id', unitId);
+        const { error: uError } = await db.from('unidades').update({ status: 'ocupado' }).eq('id', unitId);
         if (uError) throw uError;
 
         await loadData();
@@ -427,8 +435,8 @@ async function deleteTenant(id) {
         const confirmName = prompt(`⚠️ ATENÇÃO: Para DESOCUPAR o imóvel e excluir o inquilino, digite o nome completo abaixo:\n\n👉 [ ${t.nome} ]`);
 
         if (confirmName === t.nome) {
-            await supabase.from('unidades').update({ status: 'vago' }).eq('id', t.unidade_id);
-            await supabase.from('inquilinos').delete().eq('id', id);
+            await db.from('unidades').update({ status: 'vago' }).eq('id', t.unidade_id);
+            await db.from('inquilinos').delete().eq('id', id);
             await loadData();
             alert('Imóvel desocupado e inquilino removido com sucesso.');
         } else {
@@ -485,7 +493,7 @@ document.getElementById('form-confirm-payment').onsubmit = async (e) => {
         details
     };
 
-    const { error } = await supabase.from('pagamentos').insert([newPayment]);
+    const { error } = await db.from('pagamentos').insert([newPayment]);
     if (error) alert("Erro ao registrar pagamento: " + error.message);
     else {
         await loadData();
@@ -498,8 +506,31 @@ function registerPayment(tenantId) {
     openPaymentModal(tenantId);
 }
 
-// Move this to initial setup
-setupCurrencyInputs();
-setupInputFilters();
-document.getElementById('current-date').innerText = new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-loadData(); // Agora carrega do Supabase
+// Inicialização ao carregar a página
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM carregado. Iniciando setup...");
+
+    // Configurações iniciais
+    setupCurrencyInputs();
+    setupInputFilters();
+
+    // Data atual
+    const dateEl = document.getElementById('current-date');
+    if (dateEl) {
+        dateEl.innerText = new Date().toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    // Inicializar DB e Carregar Dados
+    if (initSupabase()) {
+        loadData().then(() => {
+            console.log("Setup inicial e carregamento de dados concluídos.");
+        }).catch(err => {
+            console.error("Erro ao carregar dados iniciais:", err);
+        });
+    }
+});
