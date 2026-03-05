@@ -1,7 +1,11 @@
-// Supabase Configuration
 const SUPABASE_URL = "https://obvhpzlirwsuymbiencv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9idmhwemxpcndzdXltYmllbmN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzY3OTcsImV4cCI6MjA4ODIxMjc5N30.Ru1JG7hCUSVHpomRFUMDrzgkjAnLoiK8cI-wGRf8CTM";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Use window.supabase to avoid collision with the variable name
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = supabaseClient; // Keep internal refs as 'supabase' if preferred, but usually 'supabase' is the global library.
+// Better: 
+// const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// I will rename the instance to 'db' for clarity and update all calls.
 
 // State management (Now as a cache of the DB)
 let state = {
@@ -344,7 +348,7 @@ document.getElementById('tenant-select-building').onchange = (e) => {
     unitSelect.disabled = false;
 };
 
-document.getElementById('form-inquilino').onsubmit = (e) => {
+document.getElementById('form-inquilino').onsubmit = async (e) => {
     e.preventDefault();
     const unitId = document.getElementById('tenant-select-unit').value;
 
@@ -357,25 +361,37 @@ document.getElementById('form-inquilino').onsubmit = (e) => {
         name, phone: refPhones[i], kinship: refKinship[i]
     }));
 
-    // Clean value before saving (remove comma)
+    // Clean value before saving
     const rentVal = document.getElementById('tenant-rent-value').value.replace(',', '.');
     const depositVal = document.getElementById('tenant-deposit').value.replace(',', '.');
 
     const newTenant = {
-        id: Date.now().toString(),
-        unidadeId: unitId,
+        unidade_id: unitId,
         nome: document.getElementById('tenant-name').value,
         cpf: document.getElementById('tenant-cpf').value,
         phone: document.getElementById('tenant-phone').value,
-        relatedContacts: relatedContacts,
-        dueDay: parseInt(document.getElementById('tenant-due-day').value),
-        rentValue: rentVal,
-        deposit: depositVal
+        related_contacts: relatedContacts,
+        due_day: parseInt(document.getElementById('tenant-due-day').value),
+        rent_value: parseFloat(rentVal),
+        deposit: parseFloat(depositVal)
     };
 
-    state.inquilinos.push(newTenant);
-    state.unidades.find(u => u.id === unitId).status = 'ocupado';
-    save(); renderTenants(); e.target.reset(); alert('Cadastro realizado com sucesso!');
+    try {
+        // 1. Inserir Inquilino
+        const { error: tError } = await supabase.from('inquilinos').insert([newTenant]);
+        if (tError) throw tError;
+
+        // 2. Atualizar Unidade para "ocupado"
+        const { error: uError } = await supabase.from('unidades').update({ status: 'ocupado' }).eq('id', unitId);
+        if (uError) throw uError;
+
+        await loadData();
+        e.target.reset();
+        alert('Inquilino cadastrado com sucesso!');
+    } catch (error) {
+        console.error("Erro ao cadastrar:", error);
+        alert("Erro ao cadastrar inquilino: " + error.message);
+    }
 };
 
 async function deleteTenant(id) {
