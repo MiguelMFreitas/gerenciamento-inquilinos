@@ -109,6 +109,23 @@ function setupInputFilters() {
         input.value = formatted;
     };
 
+    const applyPhoneMask = (input) => {
+        let value = input.value.replace(/\D/g, "");
+        if (value.length > 11) value = value.slice(0, 11);
+
+        let formatted = "";
+        if (value.length > 0) {
+            formatted = "(" + value.slice(0, 2);
+            if (value.length > 2) {
+                formatted += ") " + value.slice(2, 7);
+                if (value.length > 7) {
+                    formatted += "-" + value.slice(7, 11);
+                }
+            }
+        }
+        input.value = formatted;
+    };
+
     document.addEventListener('keydown', (e) => {
         const target = e.target;
         if (target.matches('#tenant-cpf, #tenant-due-day')) numberFilter(e);
@@ -227,6 +244,20 @@ function getStatusPagamento(inquilino) {
     if (pagoMensal) return { label: 'PAGO', class: 'pago' };
 
     return { label: 'PENDENTE', class: 'pendente' };
+}
+
+function getContractStatus(inquilino) {
+    if (!inquilino.entry_date || !inquilino.contract_duration) return { label: 'ATIVO', class: 'pago' };
+
+    const parts = inquilino.entry_date.split('-');
+    const entryDate = new Date(parts[0], parts[1] - 1, parts[2] || 1);
+    const expirationDate = new Date(entryDate.getFullYear(), entryDate.getMonth() + inquilino.contract_duration, entryDate.getDate());
+
+    const hoje = new Date();
+    if (hoje > expirationDate) {
+        return { label: 'VENCIDO', class: 'atrasado' };
+    }
+    return { label: 'ATIVO', class: 'pago' };
 }
 
 // --- RENDERING ---
@@ -637,6 +668,7 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
         rent_value: parseFloat(rentVal),
         deposit: parseFloat(depositVal) || 0,
         contract_duration: parseInt(document.getElementById('tenant-contract-duration').value),
+        observations: document.getElementById('tenant-observations').value,
         // Se for antigo e não tiver data de entrada, usa a data do último pagamento como início
         entry_date: type === 'old' ? (entryDateVal || lastPaymentDateVal) : new Date().toISOString().split('T')[0]
     };
