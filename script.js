@@ -36,8 +36,8 @@ let state = {
 // Carregar dados iniciais do Supabase
 async function loadData() {
     console.log("Chamando loadData()...");
-    if (!supabase) {
-        console.error("loadData() cancelado: Supabase não inicializado.");
+    if (!db) {
+        console.error("loadData() cancelado: Cliente Supabase (db) não inicializado.");
         return;
     }
     try {
@@ -120,14 +120,16 @@ function setupInputFilters() {
 }
 
 // Navigation
+console.log("Configurando navegação...");
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
+        console.log("Clique detectado em:", item.innerText);
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         item.classList.add('active');
         const target = item.getAttribute('data-target');
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById(target).classList.add('active');
-        document.getElementById('page-title').innerText = item.innerText.split(' ')[1];
+        document.getElementById('page-title').innerText = item.innerText.split(' ')[1] || item.innerText;
         renderSection(target);
     });
 });
