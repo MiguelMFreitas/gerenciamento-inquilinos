@@ -1,11 +1,21 @@
+console.log("Iniciando script...");
+
 const SUPABASE_URL = "https://obvhpzlirwsuymbiencv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9idmhwemxpcndzdXltYmllbmN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzY3OTcsImV4cCI6MjA4ODIxMjc5N30.Ru1JG7hCUSVHpomRFUMDrzgkjAnLoiK8cI-wGRf8CTM";
-// Use window.supabase to avoid collision with the variable name
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const supabase = supabaseClient; // Keep internal refs as 'supabase' if preferred, but usually 'supabase' is the global library.
-// Better: 
-// const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-// I will rename the instance to 'db' for clarity and update all calls.
+
+let supabase;
+try {
+    console.log("Tentando inicializar Supabase...");
+    // A biblioteca carregada via CDN define 'supabase' como o namespace principal
+    if (window.supabase && window.supabase.createClient) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log("Supabase inicializado com sucesso!");
+    } else {
+        console.error("Erro: Biblioteca Supabase não encontrada no window. Verifique o link do script no HTML.");
+    }
+} catch (e) {
+    console.error("Erro fatal na inicialização do Supabase:", e);
+}
 
 // State management (Now as a cache of the DB)
 let state = {
@@ -17,13 +27,30 @@ let state = {
 
 // Carregar dados iniciais do Supabase
 async function loadData() {
+    console.log("Chamando loadData()...");
+    if (!supabase) {
+        console.error("loadData() cancelado: Supabase não inicializado.");
+        return;
+    }
     try {
+        console.log("Buscando dados no Supabase...");
         const [p, u, i, pays] = await Promise.all([
             supabase.from('predios').select('*').order('nome'),
             supabase.from('unidades').select('*'),
             supabase.from('inquilinos').select('*'),
             supabase.from('pagamentos').select('*')
         ]);
+
+        console.log("Dados recebidos:", {
+            predios: p.data?.length,
+            unidades: u.data?.length,
+            inquilinos: i.data?.length,
+            pagamentos: pays.data?.length
+        });
+
+        if (p.error || u.error || i.error || pays.error) {
+            console.error("Erros nas consultas:", { p: p.error, u: u.error, i: i.error, pays: pays.error });
+        }
 
         state.predios = p.data || [];
         state.unidades = u.data || [];
