@@ -156,13 +156,45 @@ function formatCurrency(value) { return new Intl.NumberFormat('pt-BR', { style: 
 
 function getStatusPagamento(inquilino) {
     const hoje = new Date();
-    const diaAtual = hoje.getDate();
-    const mesAtual = hoje.getMonth();
-    const anoAtual = hoje.getFullYear();
+    const entryDate = inquilino.entry_date ? new Date(inquilino.entry_date) : new Date(2024, 0, 1);
 
-    const pago = state.pagamentos.find(p => p.inquilino_id === inquilino.id && p.mes === mesAtual && p.ano === anoAtual);
-    if (pago) return { label: 'PAGO', class: 'pago' };
-    if (diaAtual > inquilino.due_day) return { label: 'EM ATRASO', class: 'atrasado' };
+    let totalDebtMonths = [];
+
+    // Iterar do mês de entrada até o mês atual
+    let current = new Date(entryDate.getFullYear(), entryDate.getMonth(), 1);
+    const stop = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+    while (current <= stop) {
+        const m = current.getMonth();
+        const y = current.getFullYear();
+
+        const pago = state.pagamentos.find(p => p.inquilino_id === inquilino.id && p.mes === m && p.ano === y);
+
+        if (!pago) {
+            // Se for o mês atual, só conta como dívida se já passou o dia de vencimento
+            if (current.getTime() === stop.getTime()) {
+                if (hoje.getDate() > inquilino.due_day) {
+                    totalDebtMonths.push({ mes: m, ano: y });
+                }
+            } else {
+                totalDebtMonths.push({ mes: m, ano: y });
+            }
+        }
+        current.setMonth(current.getMonth() + 1);
+    }
+
+    if (totalDebtMonths.length > 0) {
+        return {
+            label: 'EM ATRASO',
+            class: 'atrasado',
+            months: totalDebtMonths
+        };
+    }
+
+    // Se chegou aqui e não tem dívidas pendentes, mas o mês atual ainda não foi pago nem venceu
+    const pagoMensal = state.pagamentos.find(p => p.inquilino_id === inquilino.id && p.mes === hoje.getMonth() && p.ano === hoje.getFullYear());
+    if (pagoMensal) return { label: 'PAGO', class: 'pago' };
+
     return { label: 'PENDENTE', class: 'pendente' };
 }
 
@@ -298,20 +330,27 @@ function renderPayments() {
         listAtrasados.innerHTML = atrasados.map(t => {
             const unit = state.unidades.find(u => u.id === t.unidade_id);
             const predio = unit ? state.predios.find(p => p.id === unit.predio_id) : null;
-            // Limpa o telefone para o link tel: (apenas números)
             const purePhone = t.phone.replace(/\D/g, '');
+            const status = getStatusPagamento(t);
+
+            // Gerar nomes dos meses devidos
+            const mesesExtenso = status.months.map(m => {
+                const data = new Date(m.ano, m.mes);
+                return data.toLocaleString('pt-BR', { month: 'short' }).toUpperCase();
+            }).join(', ');
 
             return `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid rgba(239, 68, 68, 0.2);">
-                    <div>
+                    <div style="flex:1">
                         <strong>${t.nome}</strong> (Apto ${unit ? unit.numero : '?'})<br>
-                        <small>${predio ? predio.nome : 'N/A'} - Venceu dia ${t.due_day}</small>
+                        <small style="color:#ef4444; font-weight:bold;">Atrasado: ${mesesExtenso}</small><br>
+                        <small>${predio ? predio.nome : 'N/A'}</small>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
-                        <a href="tel:${purePhone}" class="btn" style="background: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 5px;">
+                        <a href="tel:${purePhone}" class="btn" style="background: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 0.4rem 0.8rem;">
                             📞 Ligar
                         </a>
-                        <button class="btn" onclick="registerPayment('${t.id}')">Registrar R$</button>
+                        <button class="btn" onclick="renderPayments(); window.location.hash='#financeiro';">Ver</button>
                     </div>
                 </div>
             `;
