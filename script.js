@@ -262,13 +262,37 @@ function getContractStatus(inquilino) {
 
 // --- RENDERING ---
 
-function renderSection(name) {
+window.renderSection = function (name) {
     switch (name) {
         case 'dashboard': updateDashboard(); break;
         case 'inquilinos': renderTenants(); break;
         case 'imoveis': renderPropertiesManager(); break;
         case 'financeiro': renderPayments(); break;
     }
+}
+
+window.navigateTo = function (section) {
+    // 1. Encontrar o item do menu correspondente
+    const navItem = document.querySelector(`.nav-item[data-target="${section}"]`);
+    if (!navItem) return;
+
+    // 2. Simular o clique para disparar toda a lógica de UI existente
+    // Se houver lógica de clique vinculada por addEventListener, o click() aciona ela.
+    // Caso contrário, precisamos chamar manual.
+
+    // Remover active de todos
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    // Adicionar active no alvo
+    const allMatching = document.querySelectorAll(`.nav-item[data-target="${section}"]`);
+    allMatching.forEach(i => i.classList.add('active'));
+
+    // Esconder todas as seções
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    // Mostrar a alvo
+    document.getElementById(section).classList.add('active');
+
+    // Renderizar
+    window.renderSection(section);
 }
 
 function updateDashboard() {
@@ -525,8 +549,8 @@ window.changeMonth = function (delta) {
 }
 
 // Helper to register payment for a specific month
-async function registerPaymentForMonth(tenantId, month, year) {
-    openPaymentModal(tenantId);
+window.registerPaymentForMonth = async function (tenantId, month, year) {
+    window.openPaymentModal(tenantId);
     // Overwrite standard submit to use selected month/year
     const originalSubmit = document.getElementById('form-confirm-payment').onsubmit;
     document.getElementById('form-confirm-payment').onsubmit = async (e) => {
@@ -583,12 +607,7 @@ document.getElementById('form-predio').onsubmit = async (e) => {
     else { await loadData(); renderPropertiesManager(); e.target.reset(); }
 };
 
-async function deleteBuilding(id) {
-    if (!confirm('Isso excluirá o prédio e todas as suas unidades. Continuar?')) return;
-    const { error } = await db.from('predios').delete().eq('id', id);
-    if (error) alert("Erro ao excluir: " + error.message);
-    else await loadData();
-}
+
 
 // Unidades
 document.getElementById('form-unidade').onsubmit = async (e) => {
@@ -601,7 +620,14 @@ document.getElementById('form-unidade').onsubmit = async (e) => {
     else { await loadData(); renderPropertiesManager(); e.target.reset(); }
 };
 
-async function deleteUnit(id) {
+window.deleteBuilding = async function (id) {
+    if (!confirm('Isso excluirá o prédio e todas as suas unidades. Continuar?')) return;
+    const { error } = await db.from('predios').delete().eq('id', id);
+    if (error) alert("Erro ao excluir: " + error.message);
+    else await loadData();
+}
+
+window.deleteUnit = async function (id) {
     if (!confirm('Excluir esta unidade?')) return;
     const { error } = await db.from('unidades').delete().eq('id', id);
     if (error) alert("Erro ao excluir: " + error.message);
@@ -630,15 +656,20 @@ function setupCurrencyInputs() {
 }
 
 // Inquilinos
-document.getElementById('tenant-select-building').onchange = (e) => {
-    const buildId = e.target.value;
+window.updateUnitOptions = async function (buildId) {
     const unitSelect = document.getElementById('tenant-select-unit');
-    if (!buildId) { unitSelect.disabled = true; return; }
+    if (!buildId) {
+        unitSelect.innerHTML = '<option value="">Selecione o Prédio primeiro...</option>';
+        unitSelect.disabled = true;
+        return;
+    }
 
     const units = state.unidades.filter(u => u.predio_id === buildId && u.status === 'vago');
     unitSelect.innerHTML = '<option value="" style="font-weight:bold; font-size:1.1rem;">Selecione a Unidade (Apto)...</option>' + units.map(u => `<option value="${u.id}" style="font-size:1.1rem; padding:5px;">Apto ${u.numero}</option>`).join('');
     unitSelect.disabled = false;
 };
+
+document.getElementById('tenant-select-building').onchange = (e) => window.updateUnitOptions(e.target.value);
 
 // Toggle de Inquilino Novo vs Antigo
 document.querySelectorAll('input[name="tenant-type"]').forEach(radio => {
@@ -735,7 +766,7 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
     }
 };
 
-async function editTenant(id) {
+window.editTenant = async function (id) {
     const t = state.inquilinos.find(x => x.id === id);
     if (!t) return;
 
@@ -744,7 +775,6 @@ async function editTenant(id) {
     document.getElementById('tenant-name').value = t.nome;
     document.getElementById('tenant-cpf').value = t.cpf;
     document.getElementById('tenant-phone').value = t.phone || '';
-    document.getElementById('tenant-select-building').value = ''; // Reset building select to trigger logic
     document.getElementById('tenant-rent-value').value = t.rent_value;
     document.getElementById('tenant-contract-duration').value = t.contract_duration || '';
     document.getElementById('tenant-deposit').value = t.deposit || '';
@@ -755,12 +785,14 @@ async function editTenant(id) {
     const unit = state.unidades.find(u => u.id === t.unidade_id);
     if (unit) {
         document.getElementById('tenant-select-building').value = unit.predio_id;
-        await updateUnitOptions(unit.predio_id);
+        await window.updateUnitOptions(unit.predio_id);
         document.getElementById('tenant-select-unit').value = t.unidade_id;
     }
 
     // Mudar UI do Botão
-    document.getElementById('tenant-form-title').innerText = 'Editar Inquilino';
+    const titleEl = document.getElementById('tenant-form-title');
+    if (titleEl) titleEl.innerText = 'Editar Inquilino';
+
     document.getElementById('tenant-btn-submit').innerText = 'Salvar Alterações';
     document.getElementById('tenant-btn-cancel').style.display = 'block';
 
@@ -768,15 +800,16 @@ async function editTenant(id) {
     document.getElementById('inquilinos').scrollIntoView({ behavior: 'smooth' });
 }
 
-function cancelEdit() {
-    document.getElementById('tenant-form').reset();
+window.cancelEdit = function () {
+    document.getElementById('form-inquilino').reset();
     document.getElementById('edit-tenant-id').value = '';
-    document.getElementById('tenant-form-title').innerText = 'Cadastro de Inquilino';
+    const titleEl = document.getElementById('tenant-form-title');
+    if (titleEl) titleEl.innerText = 'Cadastro de Inquilino';
     document.getElementById('tenant-btn-submit').innerText = 'Cadastrar Inquilino';
     document.getElementById('tenant-btn-cancel').style.display = 'none';
     document.getElementById('old-tenant-fields').style.display = 'none';
 }
-async function deleteTenant(id) {
+window.deleteTenant = async function (id) {
     const t = state.inquilinos.find(ten => ten.id === id);
     if (!t) return;
 
@@ -802,7 +835,7 @@ async function deleteTenant(id) {
 }
 
 // Modal Pagamento Logic
-function openPaymentModal(tenantId) {
+window.openPaymentModal = function (tenantId) {
     const tenant = state.inquilinos.find(t => t.id === tenantId);
     if (!tenant) return;
 
@@ -811,7 +844,7 @@ function openPaymentModal(tenantId) {
     document.getElementById('payment-modal').style.display = 'flex';
 }
 
-function closePaymentModal() {
+window.closePaymentModal = function () {
     document.getElementById('payment-modal').style.display = 'none';
     document.getElementById('form-confirm-payment').reset();
     togglePaymentFields();
