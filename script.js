@@ -96,14 +96,15 @@ function setupInputFilters() {
         }
     };
 
-    const applyPhoneMask = (input) => {
+    const applyCPFMask = (input) => {
         let value = input.value.replace(/\D/g, "");
         if (value.length > 11) value = value.slice(0, 11);
 
         let formatted = "";
-        if (value.length > 0) formatted += "(" + value.slice(0, 2);
-        if (value.length > 2) formatted += ") " + value.slice(2, 7);
-        if (value.length > 7) formatted += "-" + value.slice(7, 11);
+        if (value.length > 0) formatted += value.slice(0, 3);
+        if (value.length > 3) formatted += "." + value.slice(3, 6);
+        if (value.length > 6) formatted += "." + value.slice(6, 9);
+        if (value.length > 9) formatted += "-" + value.slice(9, 11);
 
         input.value = formatted;
     };
@@ -118,7 +119,38 @@ function setupInputFilters() {
         if (e.target.matches('#tenant-phone, .ref-phone')) {
             applyPhoneMask(e.target);
         }
+        if (e.target.matches('#tenant-cpf')) {
+            applyCPFMask(e.target);
+        }
     });
+}
+
+// Global Navigation Function
+function navigateTo(target) {
+    console.log("Navegando programaticamente para:", target);
+
+    // Atualizar classes 'active' em todos os menus (Sidebar e Bottom Nav)
+    document.querySelectorAll('.nav-item').forEach(i => {
+        if (i.getAttribute('data-target') === target) {
+            i.classList.add('active');
+        } else {
+            i.classList.remove('active');
+        }
+    });
+
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    const targetSection = document.getElementById(target);
+    if (targetSection) targetSection.classList.add('active');
+
+    // Atualizar título da página
+    const activeItem = document.querySelector(`.nav-item[data-target="${target}"]`);
+    if (activeItem) {
+        const label = activeItem.querySelector('.nav-label')?.innerText || activeItem.innerText.split(' ')[1] || activeItem.innerText;
+        document.getElementById('page-title').innerText = label;
+    }
+
+    renderSection(target);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // Navigation
@@ -126,28 +158,7 @@ console.log("Configurando navegação...");
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
         const target = item.getAttribute('data-target');
-        console.log("Clique detectado em:", target);
-
-        // Atualizar classes 'active' em todos os menus (Sidebar e Bottom Nav)
-        document.querySelectorAll('.nav-item').forEach(i => {
-            if (i.getAttribute('data-target') === target) {
-                i.classList.add('active');
-            } else {
-                i.classList.remove('active');
-            }
-        });
-
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById(target).classList.add('active');
-
-        // Atualizar título da página
-        const label = item.querySelector('.nav-label')?.innerText || item.innerText.split(' ')[1] || item.innerText;
-        document.getElementById('page-title').innerText = label;
-
-        renderSection(target);
-
-        // Scroll para o topo ao trocar de aba (melhor UX no mobile)
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        navigateTo(target);
     });
 });
 
@@ -350,7 +361,7 @@ function renderPayments() {
                         <a href="tel:${purePhone}" class="btn" style="background: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 0.4rem 0.8rem;">
                             📞 Ligar
                         </a>
-                        <button class="btn" onclick="renderPayments(); window.location.hash='#financeiro';">Ver</button>
+                        <button class="btn" onclick="navigateTo('financeiro')">Ver</button>
                     </div>
                 </div>
             `;
@@ -562,7 +573,7 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
     const newTenant = {
         unidade_id: unitId,
         nome: document.getElementById('tenant-name').value,
-        cpf: document.getElementById('tenant-cpf').value,
+        cpf: document.getElementById('tenant-cpf').value.replace(/\D/g, ""), // Limpar para salvar apenas os 11 números
         phone: document.getElementById('tenant-phone').value,
         related_contacts: relatedContacts,
         due_day: parseInt(document.getElementById('tenant-due-day').value),
