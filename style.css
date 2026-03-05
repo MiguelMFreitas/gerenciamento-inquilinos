@@ -165,6 +165,64 @@ label {
     font-size: 0.9rem;
 }
 
+/* Form Grid Classes */
+.grid-form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.grid-span-2 {
+    grid-column: span 2;
+}
+
+.separator {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 0.5rem 0;
+}
+
+.form-subtitle {
+    color: var(--accent);
+}
+
+.reference-contact-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 0.8rem;
+    border-radius: 8px;
+}
+
+.mobile-full-btn {
+    display: flex;
+    align-items: flex-end;
+}
+
+.mobile-full-btn .btn {
+    width: 100%;
+}
+
+/* Utilities */
+.mt-1 {
+    margin-top: 1rem;
+}
+
+.mt-2 {
+    margin-top: 2rem;
+}
+
+.list-no-style {
+    list-style: none;
+}
+
+.scrollable-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
 input,
 select {
     width: 100%;
@@ -286,6 +344,16 @@ th {
     color: #f87171;
 }
 
+.finance-warning-card {
+    margin-bottom: 2rem;
+    border-left: 5px solid #ef4444;
+}
+
+.finance-warning-title {
+    color: #ef4444;
+    margin-bottom: 1rem;
+}
+
 /* --- MOBILE RESPONSIVENESS --- */
 
 .mobile-header,
@@ -385,17 +453,25 @@ th {
     }
 
     /* Forms */
-    form#form-inquilino {
+    .grid-form {
         grid-template-columns: 1fr !important;
     }
 
-    div[style*="grid-template-columns: 1fr 1fr"] {
-        grid-template-columns: 1fr !important;
+    .grid-span-2 {
+        grid-column: span 1 !important;
     }
 
-    div[style*="grid-template-columns: 2fr 1.5fr 1fr"] {
+    .reference-contact-row {
         grid-template-columns: 1fr !important;
-        gap: 0.5rem !important;
+        gap: 0.8rem !important;
+    }
+
+    .mobile-full-btn {
+        margin-top: 1rem;
+    }
+
+    .properties-grid {
+        gap: 1.5rem !important;
     }
 
     /* Tables Mobile */

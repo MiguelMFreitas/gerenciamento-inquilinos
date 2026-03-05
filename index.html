@@ -87,8 +87,7 @@
         <section id="inquilinos" class="section">
             <div class="card" style="margin-bottom: 2rem;">
                 <h3>Cadastro de Inquilino</h3>
-                <form id="form-inquilino"
-                    style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem;">
+                <form id="form-inquilino" class="grid-form">
                     <div class="form-group">
                         <label>Nome do Inquilino</label>
                         <input type="text" id="tenant-name" placeholder="Nome Completo" required>
@@ -103,41 +102,38 @@
                         <input type="text" id="tenant-phone" placeholder="(00) 00000-0000" required>
                     </div>
 
-                    <hr style="grid-column: span 2; border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-                    <h4 style="grid-column: span 2; color: var(--accent);">Contatos de Referência (3 Pessoas)</h4>
+                    <hr class="grid-span-2 separator">
+                    <h4 class="grid-span-2 form-subtitle">Contatos de Referência (3 Pessoas)</h4>
 
                     <!-- Contato 1 -->
-                    <div
-                        style="grid-column: span 2; display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 0.5rem; background: rgba(255,255,255,0.02); padding: 0.8rem; border-radius: 8px;">
+                    <div class="grid-span-2 reference-contact-row">
                         <input type="text" class="ref-name" placeholder="Nome Completo 1" required>
                         <input type="text" class="ref-phone" placeholder="Telefone 1 - (00) 00000-0000" required>
                         <input type="text" class="ref-kinship" placeholder="Parentesco 1" required>
                     </div>
                     <!-- Contato 2 -->
-                    <div
-                        style="grid-column: span 2; display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 0.5rem; background: rgba(255,255,255,0.02); padding: 0.8rem; border-radius: 8px;">
+                    <div class="grid-span-2 reference-contact-row">
                         <input type="text" class="ref-name" placeholder="Nome Completo 2" required>
                         <input type="text" class="ref-phone" placeholder="Telefone 2 - (00) 00000-0000" required>
                         <input type="text" class="ref-kinship" placeholder="Parentesco 2" required>
                     </div>
                     <!-- Contato 3 -->
-                    <div
-                        style="grid-column: span 2; display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 0.5rem; background: rgba(255,255,255,0.02); padding: 0.8rem; border-radius: 8px;">
+                    <div class="grid-span-2 reference-contact-row">
                         <input type="text" class="ref-name" placeholder="Nome Completo 3" required>
                         <input type="text" class="ref-phone" placeholder="Telefone 3 - (00) 00000-0000" required>
                         <input type="text" class="ref-kinship" placeholder="Parentesco 3" required>
                     </div>
 
-                    <hr style="grid-column: span 2; border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
+                    <hr class="grid-span-2 separator">
                     <div class="form-group">
                         <label>Escolher Prédio</label>
-                        <select id="tenant-select-building" style="border-width: 2px;" required>
+                        <select id="tenant-select-building" required>
                             <option value="">Selecione um Prédio...</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Escolher Unidade (Apto)</label>
-                        <select id="tenant-select-unit" style="border-width: 2px;" required disabled>
+                        <select id="tenant-select-unit" required disabled>
                             <option value="">Selecione o Prédio primeiro...</option>
                         </select>
                     </div>
@@ -153,8 +149,8 @@
                         <label>Dia do Vencimento</label>
                         <input type="number" id="tenant-due-day" min="1" max="31" placeholder="Ex: 5" required>
                     </div>
-                    <div class="form-group" style="display: flex; align-items: flex-end;">
-                        <button type="submit" class="btn" style="width: 100%;">Cadastrar Inquilino</button>
+                    <div class="form-group grid-span-2 mobile-full-btn">
+                        <button type="submit" class="btn">Cadastrar Inquilino</button>
                     </div>
                 </form>
             </div>
@@ -169,11 +165,11 @@
 
         <!-- IMOVEIS SECTION - Gestão de Prédios e Unidades -->
         <section id="imoveis" class="section">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <div class="grid-form properties-grid">
                 <!-- Cadastro de Prédio -->
                 <div class="card">
                     <h3>Novo Prédio / Categoria</h3>
-                    <form id="form-predio" style="margin-top: 1rem;">
+                    <form id="form-predio" class="mt-1">
                         <div class="form-group">
                             <label>Nome (Ex: Galpão, Edifício...)</label>
                             <input type="text" id="building-name" placeholder="Digite o nome..." required>
@@ -181,16 +177,16 @@
                         <button type="submit" class="btn">Cadastrar</button>
                     </form>
 
-                    <div style="margin-top: 2rem;">
+                    <div class="mt-2">
                         <h4>Lista de Prédios/Locais</h4>
-                        <ul id="list-buildings" style="list-style: none; margin-top: 1rem;"></ul>
+                        <ul id="list-buildings" class="list-no-style mt-1"></ul>
                     </div>
                 </div>
 
                 <!-- Cadastro de Unidade -->
                 <div class="card">
                     <h3>Nova Unidade (Apto)</h3>
-                    <form id="form-unidade" style="margin-top: 1rem;">
+                    <form id="form-unidade" class="mt-1">
                         <div class="form-group">
                             <label>Selecionar Prédio</label>
                             <select id="unit-select-building" required></select>
@@ -202,9 +198,9 @@
                         <button type="submit" class="btn">Adicionar Unidade</button>
                     </form>
 
-                    <div style="margin-top: 2rem;">
+                    <div class="mt-2">
                         <h4>Unidades por Prédio</h4>
-                        <div id="units-by-building-list" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;">
+                        <div id="units-by-building-list" class="scrollable-list mt-1">
                         </div>
                     </div>
                 </div>
@@ -214,8 +210,8 @@
         <!-- FINANCEIRO SECTION -->
         <section id="financeiro" class="section">
             <!-- Cobrança de Atrasados -->
-            <div class="card" style="margin-bottom: 2rem; border-left: 5px solid #ef4444;">
-                <h3 style="color: #ef4444; margin-bottom: 1rem;">🆘 Cobrança (Inquilinos em Atraso)</h3>
+            <div class="card finance-warning-card">
+                <h3 class="finance-warning-title">🆘 Cobrança (Inquilinos em Atraso)</h3>
                 <div id="atrasados-list">
                     <!-- Dinâmico: Lista de Inadimplentes -->
                 </div>
