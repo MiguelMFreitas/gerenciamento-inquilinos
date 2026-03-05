@@ -8,6 +8,8 @@
     --text-muted: #94a3b8;
     --border: rgba(255, 255, 255, 0.1);
     --glass: rgba(255, 255, 255, 0.03);
+    --header-height: 60px;
+    --nav-height: 70px;
 }
 
 * {
@@ -43,6 +45,7 @@ body {
     font-weight: 800;
     line-height: 1.2;
     background: linear-gradient(135deg, var(--primary), var(--accent));
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 1rem;
@@ -281,4 +284,130 @@ th {
 .badge.atrasado {
     background: rgba(239, 68, 68, 0.2);
     color: #f87171;
+}
+
+/* --- MOBILE RESPONSIVENESS --- */
+
+.mobile-header,
+.bottom-nav {
+    display: none;
+    /* Hidden by default (desktop/horizontal) */
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+    .sidebar {
+        display: none;
+    }
+
+    .mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: var(--header-height);
+        background: var(--bg-dark);
+        border-bottom: 1px solid var(--border);
+        z-index: 100;
+        backdrop-filter: blur(10px);
+    }
+
+    .mobile-header .logo {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 1rem;
+        padding-top: calc(var(--header-height) + 1rem);
+        padding-bottom: calc(var(--nav-height) + 2rem);
+    }
+
+    .bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: var(--nav-height);
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(15px);
+        border-top: 1px solid var(--border);
+        z-index: 100;
+        padding: 0 0.5rem;
+    }
+
+    .bottom-nav .nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 0.5rem 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+    }
+
+    .bottom-nav .nav-item.active {
+        color: var(--primary);
+        border: none;
+        background: transparent;
+    }
+
+    .nav-icon {
+        font-size: 1.4rem;
+    }
+
+    .nav-label {
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    /* Layout Adjustments */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.8rem;
+    }
+
+    .card {
+        padding: 1rem;
+    }
+
+    .card-value {
+        font-size: 1.2rem;
+    }
+
+    /* Forms */
+    form#form-inquilino {
+        grid-template-columns: 1fr !important;
+    }
+
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    div[style*="grid-template-columns: 2fr 1.5fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Tables Mobile */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    th,
+    td {
+        padding: 0.8rem;
+        font-size: 0.9rem;
+    }
 }

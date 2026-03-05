@@ -123,14 +123,29 @@ function setupInputFilters() {
 console.log("Configurando navegação...");
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
-        console.log("Clique detectado em:", item.innerText);
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
         const target = item.getAttribute('data-target');
+        console.log("Clique detectado em:", target);
+
+        // Atualizar classes 'active' em todos os menus (Sidebar e Bottom Nav)
+        document.querySelectorAll('.nav-item').forEach(i => {
+            if (i.getAttribute('data-target') === target) {
+                i.classList.add('active');
+            } else {
+                i.classList.remove('active');
+            }
+        });
+
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById(target).classList.add('active');
-        document.getElementById('page-title').innerText = item.innerText.split(' ')[1] || item.innerText;
+
+        // Atualizar título da página
+        const label = item.querySelector('.nav-label')?.innerText || item.innerText.split(' ')[1] || item.innerText;
+        document.getElementById('page-title').innerText = label;
+
         renderSection(target);
+
+        // Scroll para o topo ao trocar de aba (melhor UX no mobile)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 });
 

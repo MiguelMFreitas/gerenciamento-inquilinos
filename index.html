@@ -10,6 +10,11 @@
 </head>
 
 <body>
+    <!-- Mobile Header (Visible only on mobile portrait) -->
+    <header class="mobile-header">
+        <div class="logo">GERENCIAMENTO</div>
+    </header>
+
     <aside class="sidebar">
         <div class="logo">GERENCIAMENTO DE INQUILINOS</div>
         <nav>
@@ -277,6 +282,26 @@
             </form>
         </div>
     </div>
+
+    <!-- Bottom Navigation (Visible only on mobile portrait) -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" data-target="dashboard">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Início</span>
+        </div>
+        <div class="nav-item" data-target="inquilinos">
+            <span class="nav-icon">👤</span>
+            <span class="nav-label">Inquilinos</span>
+        </div>
+        <div class="nav-item" data-target="imoveis">
+            <span class="nav-icon">🏢</span>
+            <span class="nav-label">Imóveis</span>
+        </div>
+        <div class="nav-item" data-target="financeiro">
+            <span class="nav-icon">💰</span>
+            <span class="nav-label">Financeiro</span>
+        </div>
+    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
