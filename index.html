@@ -93,6 +93,7 @@
             <div class="card" style="margin-bottom: 2rem;">
                 <h3>Cadastro de Inquilino</h3>
                 <form id="form-inquilino" class="grid-form">
+                    <input type="hidden" id="edit-tenant-id">
                     <!-- Tipo de Inquilino Toggle -->
                     <div class="form-group grid-span-2 tenant-type-container">
                         <label>Este inquilino é:</label>
@@ -188,8 +189,11 @@
                         <textarea id="tenant-observations" placeholder="Notas adicionais sobre o inquilino..."
                             rows="3"></textarea>
                     </div>
-                    <div class="form-group grid-span-2 mobile-full-btn">
-                        <button type="submit" class="btn">Cadastrar Inquilino</button>
+                    <div class="form-group grid-span-2" style="display:flex; gap:1rem;">
+                        <button type="submit" id="tenant-btn-submit" class="btn" style="flex:2;">Cadastrar
+                            Inquilino</button>
+                        <button type="button" id="tenant-btn-cancel" class="btn"
+                            style="flex:1; background:#64748b; display:none;" onclick="cancelEdit()">Cancelar</button>
                     </div>
                 </form>
             </div>

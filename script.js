@@ -407,6 +407,7 @@ function renderTenants() {
                                     </td>
                                     <td>
                                         <div style="display:flex; gap: 0.5rem; align-items:center;">
+                                            <button class="btn" style="background:#0ea5e9; padding:0.4rem 0.8rem;" onclick="editTenant('${t.id}')">Editar</button>
                                             <button class="btn" style="background:#ef4444; padding:0.4rem 0.8rem;" onclick="deleteTenant('${t.id}')">Desocupar</button>
                                             ${t.observations ? `<button class="btn" style="background:#6366f1; padding:0.4rem 0.8rem;" title="Ver Observações" onclick="alert('Observações de ${t.nome}:\\n\\n${t.observations}')">Obs</button>` : ''}
                                         </div>
@@ -654,6 +655,7 @@ document.querySelectorAll('input[name="tenant-type"]').forEach(radio => {
 
 document.getElementById('form-inquilino').onsubmit = async (e) => {
     e.preventDefault();
+    const editId = document.getElementById('edit-tenant-id').value;
     const unitId = document.getElementById('tenant-select-unit').value;
     const type = document.querySelector('input[name="tenant-type"]:checked').value;
 
@@ -673,10 +675,10 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
     const entryDateVal = document.getElementById('tenant-entry-date').value;
     const lastPaymentDateVal = document.getElementById('tenant-last-payment-date').value;
 
-    const newTenant = {
-        unidade_id: unitId,
+    const tenantData = {
+        unidade_id: unitId || null,
         nome: document.getElementById('tenant-name').value,
-        cpf: document.getElementById('tenant-cpf').value.replace(/\D/g, ""), // Limpar para salvar apenas os 11 números
+        cpf: document.getElementById('tenant-cpf').value.replace(/\D/g, ""),
         phone: document.getElementById('tenant-phone').value,
         related_contacts: relatedContacts,
         due_day: parseInt(document.getElementById('tenant-due-day').value),
@@ -684,64 +686,118 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
         deposit: parseFloat(depositVal) || 0,
         contract_duration: parseInt(document.getElementById('tenant-contract-duration').value),
         observations: document.getElementById('tenant-observations').value,
-        // Se for antigo e não tiver data de entrada, usa a data do último pagamento como início
         entry_date: type === 'old' ? (entryDateVal || lastPaymentDateVal) : new Date().toISOString().split('T')[0]
     };
 
     try {
-        // 1. Inserir Inquilino
-        const { data: tenantData, error: tError } = await db.from('inquilinos').insert([newTenant]).select();
-        if (tError) throw tError;
-        const tenant = tenantData[0];
+        if (editId) {
+            // --- MODO EDIÇÃO ---
+            const oldTenant = state.inquilinos.find(t => t.id === editId);
+            const { error: tError } = await db.from('inquilinos').update(tenantData).eq('id', editId);
+            if (tError) throw tError;
 
-        // 2. Atualizar Unidade para "ocupado"
-        const { error: uError } = await db.from('unidades').update({ status: 'ocupado' }).eq('id', unitId);
-        if (uError) throw uError;
+            // Se mudou de unidade
+            if (oldTenant && oldTenant.unidade_id !== unitId) {
+                if (oldTenant.unidade_id) await db.from('unidades').update({ status: 'vago' }).eq('id', oldTenant.unidade_id);
+                if (unitId) await db.from('unidades').update({ status: 'ocupado' }).eq('id', unitId);
+            }
 
-        // 3. Se for inquilino antigo, registrar o último pagamento para evitar cobranças indevidas
-        if (type === 'old') {
-            const lastPayDateStr = document.getElementById('tenant-last-payment-date').value;
-            if (lastPayDateStr) {
-                const lastPayDate = new Date(lastPayDateStr);
+            alert('Inquilino atualizado com sucesso!');
+            cancelEdit();
+        } else {
+            // --- MODO CADASTRO ---
+            const { data: tenantDataArray, error: tError } = await db.from('inquilinos').insert([tenantData]).select();
+            if (tError) throw tError;
+            const tenant = tenantDataArray[0];
+
+            if (unitId) await db.from('unidades').update({ status: 'ocupado' }).eq('id', unitId);
+
+            if (type === 'old' && lastPaymentDateVal) {
+                const lastPayDate = new Date(lastPaymentDateVal);
                 const historicalPayment = {
                     inquilino_id: tenant.id,
                     mes: lastPayDate.getMonth(),
                     ano: lastPayDate.getFullYear(),
                     status: 'pago',
-                    details: {
-                        method: 'migracao',
-                        timestamp: lastPayDate.toISOString(),
-                        receipt: 'Pagamento migrado do sistema antigo'
-                    }
+                    details: { method: 'migracao', timestamp: lastPayDate.toISOString(), receipt: 'Pagamento migrado' }
                 };
                 await db.from('pagamentos').insert([historicalPayment]);
             }
+            alert('Inquilino cadastrado com sucesso!');
+            e.target.reset();
         }
 
         await loadData();
-        e.target.reset();
-        // Reset manual do display do toggle
         document.getElementById('old-tenant-fields').style.display = 'none';
-        alert('Inquilino cadastrado com sucesso!');
     } catch (error) {
-        console.error("Erro ao cadastrar:", error);
-        alert("Erro ao cadastrar inquilino: " + error.message);
+        console.error("Erro ao salvar:", error);
+        alert("Erro ao salvar inquilino: " + error.message);
     }
 };
 
+async function editTenant(id) {
+    const t = state.inquilinos.find(x => x.id === id);
+    if (!t) return;
+
+    // Preencher campos
+    document.getElementById('edit-tenant-id').value = t.id;
+    document.getElementById('tenant-name').value = t.nome;
+    document.getElementById('tenant-cpf').value = t.cpf;
+    document.getElementById('tenant-phone').value = t.phone || '';
+    document.getElementById('tenant-select-building').value = ''; // Reset building select to trigger logic
+    document.getElementById('tenant-rent-value').value = t.rent_value;
+    document.getElementById('tenant-contract-duration').value = t.contract_duration || '';
+    document.getElementById('tenant-deposit').value = t.deposit || '';
+    document.getElementById('tenant-due-day').value = t.due_day;
+    document.getElementById('tenant-observations').value = t.observations || '';
+
+    // Lógica de Prédio/Unidade
+    const unit = state.unidades.find(u => u.id === t.unidade_id);
+    if (unit) {
+        document.getElementById('tenant-select-building').value = unit.predio_id;
+        await updateUnitOptions(unit.predio_id);
+        document.getElementById('tenant-select-unit').value = t.unidade_id;
+    }
+
+    // Mudar UI do Botão
+    document.getElementById('tenant-form-title').innerText = 'Editar Inquilino';
+    document.getElementById('tenant-btn-submit').innerText = 'Salvar Alterações';
+    document.getElementById('tenant-btn-cancel').style.display = 'block';
+
+    // Scroll para o formulário
+    document.getElementById('inquilinos').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelEdit() {
+    document.getElementById('tenant-form').reset();
+    document.getElementById('edit-tenant-id').value = '';
+    document.getElementById('tenant-form-title').innerText = 'Cadastro de Inquilino';
+    document.getElementById('tenant-btn-submit').innerText = 'Cadastrar Inquilino';
+    document.getElementById('tenant-btn-cancel').style.display = 'none';
+    document.getElementById('old-tenant-fields').style.display = 'none';
+}
 async function deleteTenant(id) {
     const t = state.inquilinos.find(ten => ten.id === id);
-    if (t) {
-        const confirmName = prompt(`⚠️ ATENÇÃO: Para DESOCUPAR o imóvel e excluir o inquilino, digite o nome completo abaixo:\n\n👉 [ ${t.nome} ]`);
+    if (!t) return;
 
-        if (confirmName === t.nome) {
-            await db.from('unidades').update({ status: 'vago' }).eq('id', t.unidade_id);
-            await db.from('inquilinos').delete().eq('id', id);
+    const confirmName = prompt(`⚠️ ATENÇÃO: Para DESOCUPAR o imóvel e excluir o inquilino, digite o nome completo abaixo:\n\n👉 [ ${t.nome} ]`);
+
+    if (confirmName === t.nome) {
+        try {
+            if (t.unidade_id) {
+                await supabase.from('unidades').update({ status: 'vago' }).eq('id', t.unidade_id);
+            }
+            const { error: delError } = await supabase.from('inquilinos').delete().eq('id', id);
+            if (delError) throw delError;
+
             await loadData();
             alert('Imóvel desocupado e inquilino removido com sucesso.');
-        } else {
-            alert('Confirmação incorreta. Ação cancelada.');
+        } catch (error) {
+            console.error("Erro ao deletar:", error);
+            alert("Erro ao remover inquilino: " + error.message);
         }
+    } else {
+        alert('Confirmação incorreta. Ação cancelada.');
     }
 }
 
