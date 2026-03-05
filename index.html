@@ -88,6 +88,32 @@
             <div class="card" style="margin-bottom: 2rem;">
                 <h3>Cadastro de Inquilino</h3>
                 <form id="form-inquilino" class="grid-form">
+                    <!-- Tipo de Inquilino Toggle -->
+                    <div class="form-group grid-span-2 tenant-type-container">
+                        <label>Este inquilino é:</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="tenant-type" value="new" checked>
+                                <span>Novo</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="tenant-type" value="old">
+                                <span>Já mora no imóvel (Antigo)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Campos Condicionais para Inquilinos Antigos -->
+                    <div id="old-tenant-fields" class="grid-span-2 grid-form hidden-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Data de Entrada Original</label>
+                            <input type="date" id="tenant-entry-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Data do Último Pagamento Feito</label>
+                            <input type="date" id="tenant-last-payment-date">
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label>Nome do Inquilino</label>
                         <input type="text" id="tenant-name" placeholder="Nome Completo" required>
@@ -107,21 +133,21 @@
 
                     <!-- Contato 1 -->
                     <div class="grid-span-2 reference-contact-row">
-                        <input type="text" class="ref-name" placeholder="Nome Completo 1" required>
-                        <input type="text" class="ref-phone" placeholder="Telefone 1 - (00) 00000-0000" required>
-                        <input type="text" class="ref-kinship" placeholder="Parentesco 1" required>
+                        <input type="text" class="ref-name" placeholder="Nome Completo 1">
+                        <input type="text" class="ref-phone" placeholder="Telefone 1 - (00) 00000-0000">
+                        <input type="text" class="ref-kinship" placeholder="Parentesco 1">
                     </div>
                     <!-- Contato 2 -->
                     <div class="grid-span-2 reference-contact-row">
-                        <input type="text" class="ref-name" placeholder="Nome Completo 2" required>
-                        <input type="text" class="ref-phone" placeholder="Telefone 2 - (00) 00000-0000" required>
-                        <input type="text" class="ref-kinship" placeholder="Parentesco 2" required>
+                        <input type="text" class="ref-name" placeholder="Nome Completo 2">
+                        <input type="text" class="ref-phone" placeholder="Telefone 2 - (00) 00000-0000">
+                        <input type="text" class="ref-kinship" placeholder="Parentesco 2">
                     </div>
                     <!-- Contato 3 -->
                     <div class="grid-span-2 reference-contact-row">
-                        <input type="text" class="ref-name" placeholder="Nome Completo 3" required>
-                        <input type="text" class="ref-phone" placeholder="Telefone 3 - (00) 00000-0000" required>
-                        <input type="text" class="ref-kinship" placeholder="Parentesco 3" required>
+                        <input type="text" class="ref-name" placeholder="Nome Completo 3">
+                        <input type="text" class="ref-phone" placeholder="Telefone 3 - (00) 00000-0000">
+                        <input type="text" class="ref-kinship" placeholder="Parentesco 3">
                     </div>
 
                     <hr class="grid-span-2 separator">

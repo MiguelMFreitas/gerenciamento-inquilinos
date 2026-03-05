@@ -205,6 +205,43 @@ label {
     width: 100%;
 }
 
+/* Tenant Type Toggle */
+.tenant-type-container {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.radio-group {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.radio-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.hidden-fields {
+    border: 1px dashed var(--border);
+    padding: 1.2rem;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    margin-bottom: 1rem;
+}
+
 /* Utilities */
 .mt-1 {
     margin-top: 1rem;

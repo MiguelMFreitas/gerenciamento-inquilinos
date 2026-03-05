@@ -402,9 +402,23 @@ document.getElementById('tenant-select-building').onchange = (e) => {
     unitSelect.disabled = false;
 };
 
+// Toggle de Inquilino Novo vs Antigo
+document.querySelectorAll('input[name="tenant-type"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const isOld = e.target.value === 'old';
+        document.getElementById('old-tenant-fields').style.display = isOld ? 'grid' : 'none';
+
+        // Se for antigo, as referências não são obrigatórias
+        document.querySelectorAll('.ref-name, .ref-phone, .ref-kinship').forEach(input => {
+            input.required = !isOld;
+        });
+    });
+});
+
 document.getElementById('form-inquilino').onsubmit = async (e) => {
     e.preventDefault();
     const unitId = document.getElementById('tenant-select-unit').value;
+    const type = document.querySelector('input[name="tenant-type"]:checked').value;
 
     // Coletar referências
     const refNames = Array.from(document.querySelectorAll('.ref-name')).map(i => i.value);
@@ -413,7 +427,7 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
 
     const relatedContacts = refNames.map((name, i) => ({
         name, phone: refPhones[i], kinship: refKinship[i]
-    }));
+    })).filter(c => c.name || c.phone); // Remove contatos vazios
 
     // Clean value before saving
     const rentVal = document.getElementById('tenant-rent-value').value.replace(',', '.');
@@ -428,20 +442,44 @@ document.getElementById('form-inquilino').onsubmit = async (e) => {
         due_day: parseInt(document.getElementById('tenant-due-day').value),
         rent_value: parseFloat(rentVal),
         deposit: parseFloat(depositVal),
-        contract_duration: parseInt(document.getElementById('tenant-contract-duration').value)
+        contract_duration: parseInt(document.getElementById('tenant-contract-duration').value),
+        entry_date: type === 'old' ? document.getElementById('tenant-entry-date').value : new Date().toISOString().split('T')[0]
     };
 
     try {
         // 1. Inserir Inquilino
-        const { error: tError } = await db.from('inquilinos').insert([newTenant]);
+        const { data: tenantData, error: tError } = await db.from('inquilinos').insert([newTenant]).select();
         if (tError) throw tError;
+        const tenant = tenantData[0];
 
         // 2. Atualizar Unidade para "ocupado"
         const { error: uError } = await db.from('unidades').update({ status: 'ocupado' }).eq('id', unitId);
         if (uError) throw uError;
 
+        // 3. Se for inquilino antigo, registrar o último pagamento para evitar cobranças indevidas
+        if (type === 'old') {
+            const lastPayDateStr = document.getElementById('tenant-last-payment-date').value;
+            if (lastPayDateStr) {
+                const lastPayDate = new Date(lastPayDateStr);
+                const historicalPayment = {
+                    inquilino_id: tenant.id,
+                    mes: lastPayDate.getMonth(),
+                    ano: lastPayDate.getFullYear(),
+                    status: 'pago',
+                    details: {
+                        method: 'migracao',
+                        timestamp: lastPayDate.toISOString(),
+                        receipt: 'Pagamento migrado do sistema antigo'
+                    }
+                };
+                await db.from('pagamentos').insert([historicalPayment]);
+            }
+        }
+
         await loadData();
         e.target.reset();
+        // Reset manual do display do toggle
+        document.getElementById('old-tenant-fields').style.display = 'none';
         alert('Inquilino cadastrado com sucesso!');
     } catch (error) {
         console.error("Erro ao cadastrar:", error);
