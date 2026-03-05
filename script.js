@@ -357,10 +357,12 @@ function renderPayments() {
             const purePhone = t.phone.replace(/\D/g, '');
             const status = getStatusPagamento(t);
 
-            // Gerar nomes dos meses devidos
+            // Gerar nomes dos meses devidos com ano para evitar confusão de repetição
             const mesesExtenso = status.months.map(m => {
                 const data = new Date(m.ano, m.mes);
-                return data.toLocaleString('pt-BR', { month: 'short' }).toUpperCase();
+                const mesNome = data.toLocaleString('pt-BR', { month: 'short' }).toUpperCase();
+                // Se a dívida for de outro ano, mostra o ano
+                return m.ano !== new Date().getFullYear() ? `${mesNome}/${m.ano}` : mesNome;
             }).join(', ');
 
             return `
@@ -375,7 +377,7 @@ function renderPayments() {
                         <a href="tel:${purePhone}" class="btn" style="background: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 0.4rem 0.8rem;">
                             📞 Ligar
                         </a>
-                        <button class="btn" style="background: var(--primary);" onclick="window.navigateTo('financeiro')">Ver</button>
+                        <button class="btn" style="background: var(--primary);" onclick="window.navigateTo('financeiro'); setTimeout(() => document.getElementById('table-payments').scrollIntoView({behavior:'smooth'}), 100);">Ver</button>
                     </div>
                 </div>
             `;
@@ -383,6 +385,10 @@ function renderPayments() {
     }
 
     // 2. Renderizar Tabela Geral
+    const mesDisplay = new Date(state.viewYear, state.viewMonth).toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    const labelEl = document.getElementById('current-month-display');
+    if (labelEl) labelEl.innerText = mesDisplay.charAt(0).toUpperCase() + mesDisplay.slice(1);
+
     tbody.innerHTML = state.inquilinos.map(t => {
         // Agora o status é relativo ao mês que estamos VENDO
         const pago = state.pagamentos.find(p => p.inquilino_id === t.id && p.mes === state.viewMonth && p.ano === state.viewYear);
@@ -420,7 +426,7 @@ function renderPayments() {
     }).join('');
 }
 
-function changeMonth(delta) {
+window.changeMonth = function (delta) {
     let newMonth = state.viewMonth + delta;
     let newYear = state.viewYear;
 
